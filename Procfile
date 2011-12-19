@@ -1,1 +1,1 @@
-web: sh server/target/hero
+web: sh target/hero
