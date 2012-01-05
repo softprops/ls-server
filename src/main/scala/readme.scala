@@ -61,7 +61,8 @@ object Readme {
 }}</code></pre>
 
       <p>To perform an <code>lsync</code> for a given project, simply perform the following HTTP <code>POST</code></p>
-      <pre><code>curl -X POST http://ls.implicit.ly/api/1/libraries -d '<span class="key">user</span>=your-gh-user&amp;<span class="key">repo</span>=your-gh-repo&amp;<span class="key">version</span>=version-to-sync'</code></pre>
+      <pre><code>curl -X POST http://ls.implicit.ly/api/1/libraries \
+  -d '<span class="key">user</span>=your-gh-user&amp;<span class="key">repo</span>=your-gh-repo&amp;<span class="key">version</span>=version-to-sync'</code></pre>
 
      This will tell <code>ls</code> to extract any files in the <code>github.com/your-gh-user/your-gh-repo</code> repository for files matching <code>src/main/ls/version-to-sync.json</code> and store the library's metadata.
       </p>
