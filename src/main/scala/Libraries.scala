@@ -61,9 +61,8 @@ object Libraries extends Logged {
     }
 
   /** For project-based queries */
-  def projects[T, C](user: String,
-                     repo: Option[String] = None)
-                    (f: Iterable[C] => T)(implicit cct: CanConvertListTo[C]) =
+  def projects[T, C](user: String, repo: Option[String] = None)(
+    f: Iterable[C] => T)(implicit cct: CanConvertListTo[C]) =
     libraries { c =>
       log.info(
         "getting libraries for user: %s, repo: %s" format(
@@ -77,9 +76,10 @@ object Libraries extends Logged {
       ))
     }
 
-  def latest[T, C](name: String, user: Option[String] = None,
-                   repo: Option[String] = None)
-                    (f: Iterable[C] => T)(implicit cct: CanConvertListTo[C]) =
+  def latest[T, C](
+    name: String, user: Option[String] = None,
+    repo: Option[String] = None)
+    (f: Iterable[C] => T)(implicit cct: CanConvertListTo[C]) =
     libraries { c =>
       log.info("geting latest version of %s (%s/%s)" format(name, user, repo))
       val query = Obj("name" -> anycase(name)) opt user.map(u =>
