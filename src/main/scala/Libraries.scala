@@ -126,8 +126,8 @@ object Libraries extends Logged {
     log.info("saving or updating %d libraries" format libs.size)
     libs.map { l =>
       val query = Obj(
-        "name" -> anycase(l.name), "organization" -> l.organization,
-        "ghuser" -> l.ghuser.map(anycase), "ghrepo" -> l.ghrepo.map(anycase)
+        "name" -> l.name, "organization" -> l.organization,
+        "ghuser" -> l.ghuser, "ghrepo" -> l.ghrepo
       )
       log.info("create or update selection query %s" format query)
 
