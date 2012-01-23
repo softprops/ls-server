@@ -19,6 +19,8 @@ object Libraries extends Logged {
 
   def anycase(term: String) = """(?i)%s""".format(term).r
 
+  def narrowAnycase(term: String) = """(?i)^%s$""".format(term).r
+
   private def libraries[T](f: MongoCollection => T) =
     Store.collection("libraries")(f)
 
@@ -82,10 +84,10 @@ object Libraries extends Logged {
     (f: Iterable[C] => T)(implicit cct: CanConvertListTo[C]) =
     libraries { c =>
       log.info("geting latest version of %s (%s/%s)" format(name, user, repo))
-      val query = Obj("name" -> anycase(name)) opt user.map(u =>
-        Obj("ghuser" -> anycase(u))
+      val query = Obj("name" -> narrowAnycase(name)) opt user.map(u =>
+        Obj("ghuser" -> narrowAnycase(u))
       ) opt repo.map(r =>
-        Obj("ghrepo" -> anycase(r))
+        Obj("ghrepo" -> narrowAnycase(r))
       )
       f(cct(c.find(
         query,
@@ -105,10 +107,10 @@ object Libraries extends Logged {
         name, user, repo
       ))
       val query =
-        Obj("name" -> anycase(name)) opt user.map(u =>
-          Obj("ghuser" -> anycase(u))
+        Obj("name" -> narrowAnycase(name)) opt user.map(u =>
+          Obj("ghuser" -> narrowAnycase(u))
         ) opt repo.map(r =>
-          Obj("ghrepo" -> anycase(r))
+          Obj("ghrepo" -> narrowAnycase(r))
         ) opt version.map(v =>
           Obj("versions.version" -> version)
         )
