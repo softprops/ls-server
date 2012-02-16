@@ -55,7 +55,7 @@ object Conversions extends Logged {
             "url" -> c.url
           )
         },
-      "versions" -> versionsToDbObjects(l.versions)
+      "versions" -> versionsToDbObjects(l.versions, l.organization)
     )
 
   def libraryDepToDbObject(m: ModuleID) =
@@ -75,7 +75,7 @@ object Conversions extends Logged {
   implicit val libraryToDbObject: Library => DBObject =
     (l: Library) =>
       Obj(
-        "organization" -> l.organization,
+        "organization" -> l.organization, // deprecated
         "name" -> l.name,
         "description" -> l.description,
         "_keywords" -> keywords(l),
@@ -97,6 +97,7 @@ object Conversions extends Logged {
         "versions" ->
           Seq(Obj( // this should NOT delete any exisiting versions
             "version" -> l.version,
+            "organization" -> l.organization,
             "docs" -> l.docs,
             "resolvers" -> l.resolvers,
             "dependencies" ->
@@ -106,23 +107,21 @@ object Conversions extends Logged {
           ))
       )
 
-  private def versionsToDbObjects(versions: Seq[Version]) =
+  private def versionsToDbObjects(versions: Seq[Version], fallbackOrganization: String) =
     versions.map { v =>
       Obj(
         "version" -> v.version,
+        "organization" -> (if(v.organization.isEmpty) fallbackOrganization else v.organization),
         "docs" -> v.docs,
         "resolvers" -> v.resolvers,
         "dependencies" ->
           v.dependencies.map(libraryDepToDbObject),
-          "licenses" -> v.licenses.map(licenseToDbObject),
-          "scalas" -> v.scalas
+        "licenses" -> v.licenses.map(licenseToDbObject),
+        "scalas" -> v.scalas
       )
     }
 
   implicit val versionOrdering: Ordering[Version] = Ordering.by((_:Version).version).reverse
-
-  //private def innerList(m: Obj)(objName: String, lname: String) =
-  //  wrapDBList(wrapDBObj(m.getAs[BasicDBList](objName).get).getAs[BasicDBList](lname).get)
 
   def first(m: Obj)(objName: String, prop: String): Option[String] =
     wrapDBList(m.getAs[BasicDBList](objName).get).iterator match {
@@ -146,28 +145,31 @@ object Conversions extends Logged {
     License(o.getAs[String]("name").get,
      o.getAs[String]("url").get)
 
-  private def dbObjectToVersion(m:Obj) = try { Version(
-    m.getAs[String]("version").get,
-    m.getAs[String]("docs").get,
-    wrapDBList(m.getAs[BasicDBList]("resolvers").get)
-      .iterator.map(_.toString).toSeq,
-    wrapDBList(m.getAs[BasicDBList]("dependencies").get)
-      .iterator.map(l => moduleId(wrapDBObj(l.asInstanceOf[DBObject]))).toSeq,
-    wrapDBList(m.getAs[BasicDBList]("scalas").get)
-      .iterator.map(_.toString).toSeq,
-    m.getAs[BasicDBList]("licenses") match {
-      case Some(dbl) =>
-        wrapDBList(dbl).iterator.map(l => license(l.asInstanceOf[DBObject])).toSeq
-      case _ => Seq()
-    }
-  ) } catch {
+  private def dbObjectToVersion(m:Obj, pm: Obj) = try {
+    Version(
+      m.getAs[String]("version").get,
+      m.getAs[String]("docs").get,
+      wrapDBList(m.getAs[BasicDBList]("resolvers").get)
+        .iterator.map(_.toString).toSeq,
+      wrapDBList(m.getAs[BasicDBList]("dependencies").get)
+        .iterator.map(l => moduleId(wrapDBObj(l.asInstanceOf[DBObject]))).toSeq,
+      wrapDBList(m.getAs[BasicDBList]("scalas").get)
+        .iterator.map(_.toString).toSeq,
+      m.getAs[BasicDBList]("licenses") match {
+        case Some(dbl) =>
+          wrapDBList(dbl).iterator.map(l => license(l.asInstanceOf[DBObject])).toSeq
+        case _ => Seq()
+      },
+      m.getAs[String]("organization").orElse(pm.getAs[String]("organization")).get
+    )
+  } catch {
     case e =>
       log.error("failed to parse %s" format m)
       throw e
   }
 
   implicit val dbObjectToLibraryVersions: Obj => LibraryVersions = (m) => try { LibraryVersions(
-    m.getAs[String]("organization").get,
+    m.getAs[String]("organization").getOrElse(""), // migration to storing organization in version object
     m.getAs[String]("name").get,
     m.getAs[String]("description").get,
     m.getAs[String]("site").get,
@@ -175,7 +177,7 @@ object Conversions extends Logged {
       .iterator.map(_.toString).toSeq,
     m.getAs[Long]("updated").getOrElse(new Date().getTime),
     wrapDBList(m.getAs[BasicDBList]("versions").get)
-      .iterator.map(v => dbObjectToVersion(v.asInstanceOf[BasicDBObject])).toSeq,
+      .iterator.map(v => dbObjectToVersion(v.asInstanceOf[BasicDBObject], m)).toSeq,
     m.getAs[Boolean]("sbt").getOrElse(false),
     m.getAs[String]("ghuser"),
     m.getAs[String]("ghrepo"),
