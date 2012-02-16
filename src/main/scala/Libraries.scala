@@ -7,9 +7,9 @@ import com.mongodb.casbah.Imports._
 object Libraries extends Logged {
   import Conversions._
   import com.mongodb.casbah.commons.Imports.ObjectId
-  import com.mongodb.casbah.commons.{MongoDBObject => Obj, MongoDBList => ObjList}
-  import com.mongodb.casbah.{MongoCollection}
-  import com.mongodb.{BasicDBList, DBObject}
+  import com.mongodb.casbah.commons.{ MongoDBObject => Obj, MongoDBList => ObjList }
+  import com.mongodb.casbah.{ MongoCollection }
+  import com.mongodb.{ BasicDBList, DBObject }
   import com.mongodb.casbah.Implicits._
 
   type CanConvertListTo[A] = Iterator[DBObject] => Iterable[A]
@@ -126,26 +126,32 @@ object Libraries extends Logged {
     log.info("saving or updating %d libraries" format libs.size)
     libs.map { l =>
       val query = Obj(
-        "name" -> l.name, "organization" -> l.organization,
-        "ghuser" -> l.ghuser, "ghrepo" -> l.ghrepo
+        "name" -> l.name,
+        "ghuser" -> l.ghuser,
+        "ghrepo" -> l.ghrepo
       )
       log.info("create or update selection query %s" format query)
-
       apply(l.name, user = l.ghuser, repo = l.ghrepo){ (currentVersions: Iterable[LibraryVersions]) =>
-        if(currentVersions.isEmpty) try { col.findAndModify(
-          query, // query
-          Obj(), // fields
-          Obj(), // sort
-          false, // rm 
-          libraryToDbObject(l),// update
-          true,  // returned new
-          true   // create or update
-        ) } catch {
+        log.info("found %s libraries by the name %s under %s/%s" format(currentVersions, l.name, l.ghuser, l.ghrepo))
+        if(currentVersions.isEmpty) try {
+          col.findAndModify(
+            query, // query
+            Obj(), // fields
+            Obj(), // sort
+            false, // rm
+            libraryToDbObject(l),// update
+            true,  // returned new
+            true   // create or update
+          )
+        } catch {
           case e => e.printStackTrace
         } else {
           // this could get ugly!
           val current: LibraryVersions = currentVersions.head.copy(
             description = l.description,
+            // for now, always update this to the provided org (assume it's the latest)
+            // this field for all intents an purposes should be considered deprecated
+            organization = l.organization,
             site = l.site,
             tags = l.tags,
             sbt = l.sbt,
@@ -158,7 +164,8 @@ object Libraries extends Logged {
               l.version, l.docs,
               l.resolvers, l.dependencies,
               l.scalas,
-              l.licenses
+              l.licenses,
+              l.organization
             ) +: versions).sorted
             val updating = libraryVersionsToDbObject(current.copy(
               versions = appended
@@ -168,7 +175,7 @@ object Libraries extends Logged {
               query,
               Obj(),
               Obj(),
-              false, 
+              false,
               updating,
               true,
               true
@@ -176,7 +183,7 @@ object Libraries extends Logged {
           } else {
             // update version
             val merged = (contained(0).copy(
-              version = l.version,docs = l.docs,
+              version = l.version, organization = l.organization, docs = l.docs,
               resolvers = l.resolvers, dependencies = l.dependencies,
               scalas = l.scalas
             ) +: notcontained).sorted
@@ -187,7 +194,7 @@ object Libraries extends Logged {
               query,
               Obj(),
               Obj(),
-              false, 
+              false,
               updated,
               true,
               true
