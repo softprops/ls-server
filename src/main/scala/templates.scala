@@ -100,7 +100,7 @@ object Templates {
         <div>
          {
            installInfo(
-             ModuleID(l.organization, l.name, v.version),
+             ModuleID((if(v.organization.isEmpty) l.organization else v.organization), l.name, v.version),
              v.resolvers, v.scalas, l.sbt
            )
           }
