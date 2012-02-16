@@ -10,7 +10,7 @@ resolvers ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  "me.lessis" %% "ls" % "0.1.2-RC1",
+  "me.lessis" %% "ls" % "0.1.2-RC2",
   "com.codahale" %% "jerkson" % "0.5.0",
   "net.databinder" %% "dispatch-http" % "0.8.6",
   "net.databinder" %% "unfiltered-netty-server" % "0.5.3",
