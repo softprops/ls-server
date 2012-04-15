@@ -6,13 +6,15 @@ version := "0.1.1-SNAPSHOT"
 
 resolvers ++= Seq(
   "coda" at "http://repo.codahale.com",
-  "lessis" at "http://repo.lessis.me"
+  "lessis" at "http://repo.lessis.me",
+  "sona" at "http://oss.sonatype.org/content/repositories/releases/"
 )
 
 libraryDependencies ++= Seq(
   "me.lessis" %% "ls" % "0.1.2-RC2",
   "com.codahale" %% "jerkson" % "0.5.0",
   "net.databinder" %% "dispatch-http" % "0.8.6",
+  "net.databinder" %% "dispatch-lift-json" % "0.8.5",
   "net.databinder" %% "unfiltered-netty-server" % "0.5.3",
   "com.mongodb.casbah" %% "casbah" % "2.1.5-1"
 )

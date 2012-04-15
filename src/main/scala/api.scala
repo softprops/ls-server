@@ -19,32 +19,41 @@ object RequestLog extends Logged {
   }
 }
 
+
+object G8Api extends Logged {
+  import G8._
+  import QParams._
+  import G8Conversions._
+
+  def all: Cycle.Intent[Any, Any] = {
+    case GET(Path(Seg("api" :: "1" :: "g8" :: Nil)) & Params(p)) =>
+      val expect = for {
+         pg <- lookup("page") is optional[String, String]
+         lim <- lookup("limit") is optional[String, String]
+      } yield {
+        G8.all(
+          pg.get.getOrElse("1").toInt,
+          lim.get.getOrElse(G8.DefaultLimit.toString).toInt)(As.jsonTemplate)
+      }
+      Clock("all %s" format p, log) {
+        expect(p) orFail { f =>
+          NotFound
+        }
+      }
+  }
+}
+
 object Api extends Logged {
   import Conversions._
   import Libraries._
   import QParams._
   
-  def asJson(libs: Iterable[LibraryVersions]) =
-    if(libs.isEmpty) NotFound
-    else JsonContent ~> {
-      log.info("returning %d libs" format libs.size)
-      ResponseString(com.codahale.jerkson.Json.generate(libs))
-    }
-
-  def asJsonVersion(v: Iterable[String]) =
-    v.iterator match {
-      case it if(it.hasNext) =>
-         JsonContent ~>
-          ResponseString(
-            """{"version":"%s"}""" format it.next
-          )
-      case _ => NotFound
-    }
-
   def unparsable: PartialFunction[Github.Error, Boolean] = {
     case Github.Unparsable => true
     case _ => false
   }
+
+  
 
   /** Synchronizes ls libraries with libraries on github.
    *  If projects are resolved but malformed, no persistence is made.
@@ -87,7 +96,7 @@ object Api extends Logged {
   def authors: Cycle.Intent[Any, Any] = {
     case GET(Path(Seg("api" :: "1" :: "authors" :: user :: Nil))) =>
       Clock("authors %s" format user, log) {
-        Libraries.author(user)(asJson)
+        Libraries.author(user)(As.json)
       }
   }
 
@@ -96,9 +105,9 @@ object Api extends Logged {
     case GET(Path(Seg("api" :: "1" :: "projects" :: rest))) => Clock("projects %s" format rest, log) {
       rest match {
         case user :: Nil =>
-          Libraries.projects(user)(asJson)
+          Libraries.projects(user)(As.json)
         case user :: repo :: Nil =>
-          Libraries.projects(user, Some(repo))(asJson)
+          Libraries.projects(user, Some(repo))(As.json)
         case _ => NotFound
       }
     }
@@ -109,15 +118,15 @@ object Api extends Logged {
     case GET(Path(Seg("api" :: "1" :: "libraries" :: rest))) => Clock("libraries %s" format rest, log) {
       rest match {
         case name :: Nil =>
-          Libraries(name)(asJson)
+          Libraries(name)(As.json)
         case name :: version :: Nil =>
-          Libraries(name, version = Some(version))(asJson)
+          Libraries(name, version = Some(version))(As.json)
         case name :: version :: user :: Nil =>
           Libraries(name, version = Some(version),
-                  user = Some(user))(asJson)
+                  user = Some(user))(As.json)
         case name :: version :: user :: repo :: Nil =>
           Libraries(name, version = Some(version),
-                  user = Some(user), repo = Some(repo))(asJson)
+                  user = Some(user), repo = Some(repo))(As.json)
         case _ => NotFound
       }
     }
@@ -132,7 +141,7 @@ object Api extends Logged {
       } yield {
         import com.mongodb.DBObject
         import com.mongodb.casbah.Implicits._
-        Libraries.latest(lib, user.get, repo.get)(asJsonVersion)(
+        Libraries.latest(lib, user.get, repo.get)(As.jsonVersion)(
           _.flatMap(Conversions.first(_)("versions", "version")).toList.headOption
         )
       }
@@ -156,7 +165,7 @@ object Api extends Logged {
            Libraries.any(q.get.split("""\s+"""))(
              pg.get.getOrElse("1").toInt,
              lim.get.getOrElse("20").toInt
-           )(asJson)
+           )(As.json)
        }
        Clock("search %s" format p, log) {
          expect(p) orFail { errors =>
@@ -176,7 +185,7 @@ object Api extends Logged {
       } yield {
         Libraries.all(
           pg.get.getOrElse("1").toInt,
-          lim.get.getOrElse("20").toInt)(asJson)
+          lim.get.getOrElse("20").toInt)(As.json)
       }
       Clock("all %s" format p, log) {
         expect(p) orFail { f =>

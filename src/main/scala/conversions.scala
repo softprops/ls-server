@@ -200,12 +200,4 @@ object Conversions extends Logged {
 
   implicit val mislv: Iterator[DBObject] => Iterable[LibraryVersions] =
     (m) => (for(l <- m) yield dbObjectToLibraryVersions(l)).toSeq
-
-  // todo: contribute back to casbah
-  implicit def mdbo2optpp(dbo: DBObject) = new {
-    def opt(opt: Option[DBObject]): DBObject = opt match {
-      case Some(other) => dbo ++ other
-      case _ => dbo
-    }
-  }
 }

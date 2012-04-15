@@ -6,20 +6,14 @@ import com.mongodb.casbah.Imports._
 
 object Libraries extends Logged {
   import Conversions._
+  import Mongo._
   import com.mongodb.casbah.commons.Imports.ObjectId
   import com.mongodb.casbah.commons.{ MongoDBObject => Obj, MongoDBList => ObjList }
   import com.mongodb.casbah.{ MongoCollection }
   import com.mongodb.{ BasicDBList, DBObject }
   import com.mongodb.casbah.Implicits._
 
-  type CanConvertListTo[A] = Iterator[DBObject] => Iterable[A]
-  type CanConvertTo[A, B] = A => B
-
   val DefaultLimit = 20
-
-  def anycase(term: String) = """(?i)%s""".format(term).r
-
-  def narrowAnycase(term: String) = """(?i)^%s$""".format(term).r
 
   private def libraries[T](f: MongoCollection => T) =
     Store.collection("libraries")(f)
@@ -49,15 +43,10 @@ object Libraries extends Logged {
      f(cct( paginate(c.find(query), page, lim).sort(Obj("updated" -> -1)) ))
    }
 
-  // this will always return one less and one more
-  // for pagination hints
-  def paginate(c: MongoCursor, page: Int, lim: Int) =
-    c.skip(math.max(0, (lim * (page - 1)) - 1)).limit(lim + 1)
-
   /** get a pagingates list of all libraries */
   def all[T, C](page: Int = 1, lim: Int = DefaultLimit)(f: Iterable[C] => T)
                (implicit cct: CanConvertListTo[C])=
-    Store.collection("libraries") { c =>
+    libraries { c =>
       log.info("getting libraries (page: %s, lim: %s)" format(page, lim))
       f(cct( paginate(c.find(), page, lim).sort(Obj("updated" -> -1)) ))
     }

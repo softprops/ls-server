@@ -16,6 +16,8 @@ object Server {
       .handler(netty.cycle.Planify {
         Api.all orElse Api.latest orElse Api.projects orElse Api.search orElse(
           Api.sync orElse Api.authors orElse Api.libraries orElse Browser.home orElse Browser.show
+        ) orElse(
+          G8Api.all
         )
       })
       .run(s => a match {
