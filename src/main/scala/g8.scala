@@ -50,7 +50,7 @@ object G8 extends Logged {
   def all[C, T](page: Int = 1, limit: Int = DefaultLimit)(f: Iterable[C] => T)(implicit cct: CanConvertListTo[C]) =
     templates { c =>
       log.info("getting templates (page: %s, limit: %s)" format(page, limit))
-      f(cct(paginate(c.find(), page, limit).sort(Obj("updated" -> -1))))
+      f(cct(paginate(c.find(), page, limit).sort(Obj("username" -> 1, "name"-> 1))))
     }
 
    def apply[T, C](
