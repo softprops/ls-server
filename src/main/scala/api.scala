@@ -19,7 +19,6 @@ object RequestLog extends Logged {
   }
 }
 
-
 object G8Api extends Logged {
   import G8._
   import QParams._
@@ -41,6 +40,28 @@ object G8Api extends Logged {
         }
       }
   }
+
+  def query: Cycle.Intent[Any, Any] = {
+    case GET(Path(Seg("api" :: "1" :: "g8" :: user :: repo :: Nil))) & Params(p) =>
+      val expect = for {
+        pg <- lookup("page") is optional[String, String]
+        lim <- lookup("limit") is optional[String, String]
+      } yield {
+        val qu = if (user == "*") None else Some(user)
+        val qr = if (repo == "*") None else Some(repo)
+        if (Seq(qu, qr).isEmpty) NotFound
+        else G8(
+          qu, qr,
+          pg.get.getOrElse("1").toInt,
+          lim.get.getOrElse(G8.DefaultLimit.toString).toInt
+        )(As.jsonTemplate)
+      }
+      Clock("query templates %s/%s" format(user, repo), log) {
+        expect(p) orFail { f =>
+          NotFound
+        }
+      }
+    }
 }
 
 object Api extends Logged {

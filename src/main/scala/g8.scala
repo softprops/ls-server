@@ -50,25 +50,37 @@ object G8 extends Logged {
   def all[C, T](page: Int = 1, limit: Int = DefaultLimit)(f: Iterable[C] => T)(implicit cct: CanConvertListTo[C]) =
     templates { c =>
       log.info("getting templates (page: %s, limit: %s)" format(page, limit))
-      f(cct(paginate(c.find(), page, limit).sort(Obj("username" -> 1, "name"-> 1))))
+      f(cct(paginate(c.find(), page, limit).sort(
+        Obj("username" -> 1, "name"-> 1))))
     }
 
    def apply[T, C](
-    username: String,
-    name: Option[String] = None)
+     username: Option[String],
+     name: Option[String],
+     page: Int = 1, limit: Int = DefaultLimit)
     (f: Iterable[C] => T)(implicit cct: CanConvertListTo[C]) =
     templates { c =>
       log.info("getting templates for username: %s, name: %s" format(
         username, name
       ))
-      val query =
-        Obj("username" -> narrowAnycase(username)) opt name.map(n =>
-          Obj("name" -> narrowAnycase(n))
-        )
-      log.info("query: %s" format query)
-      f(cct(
-        c.find(query)
-      ))
+      ((username, name) match {
+        case (Some(user), Some(tmp)) =>
+          Some(Obj("username" -> anycase(user), "name" -> anycase(tmp)))
+        case (Some(user), _) =>
+          Some(Obj("username" -> anycase(user)))
+        case (_, Some(tmp)) =>
+          Some(Obj("name" -> anycase(tmp)))
+        case _ =>
+          None
+      }) match {
+        case Some(q) =>
+          log.info("query: %s" format q)
+          f(cct(
+            paginate(c.find(q), page, limit).sort(
+               Obj("username" -> 1, "name"-> 1))
+          ))
+        case _ => all(page, limit)(f)(cct)
+      }
     }
 
   def save(tmpls: Seq[Template]) = templates { col =>
