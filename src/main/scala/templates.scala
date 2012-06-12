@@ -127,8 +127,9 @@ object Templates {
     "\nresolvers += \"%s\" at \"%s\"".format(name, uri)
 
  def sbtDefaultResolver(s: String) =
-   s.contains("http://repo1.maven.org/maven2/") ||
-   s.contains("http://scala-tools.org/repo-releases")
+   s.contains("repo1.maven.org/maven2") ||
+   s.contains("scala-tools.org/repo-releases") ||
+   s.contains("oss.sonatype.org/content/repositories")
 
   def installInfo(mid: ModuleID, resolvers: Seq[String],
                   scalaVersions: Seq[String], sbtPlugin: Boolean) =
