@@ -13,9 +13,9 @@ resolvers ++= Seq(
 libraryDependencies ++= Seq(
   "me.lessis" %% "ls" % "0.1.2-RC2",
   "com.codahale" %% "jerkson" % "0.5.0",
-  "net.databinder" %% "dispatch-http" % "0.8.6",
+  "net.databinder" %% "dispatch-http" % "0.8.8",
   "net.databinder" %% "dispatch-lift-json" % "0.8.5",
-  "net.databinder" %% "unfiltered-netty-server" % "0.5.3",
+  "net.databinder" %% "unfiltered-netty-server" % "0.6.3",
   "com.mongodb.casbah" %% "casbah" % "2.1.5-1"
 )
 
