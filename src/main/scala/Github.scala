@@ -73,7 +73,7 @@ object Github extends ManagedHttp with Logged {
     }
 
   /** Extract a library from a gh blob, result may be unparsable or not found */
-  private def lib(user: String, repo: String, sha: String): Either[Error, Library] =
+  def lib(user: String, repo: String, sha: String): Either[Error, Library] =
     try {
       http(repos.secure / user / repo / "git" / "blobs" / sha <:< BlogOpts >> { in =>
         try {
@@ -89,20 +89,25 @@ object Github extends ManagedHttp with Logged {
         }
       })
     } catch {
-      case _ => log.warn("%s not found" format sha);Left(NotFound)
+      case _ =>
+        log.warn("%s not found" format sha)
+        Left(NotFound)
     }
 
   /** Extract all libraries from a repo on a given branch */
   private def any(user: String, repo: String, branch: String, version: String): Seq[Either[Error, Library]] =
     allCatch.opt {
-      http(repos.secure / user / repo / "git" / "trees" / branch <<? TreeOpts >> { in =>
+      http(repos.secure / user / repo / "git" / "trees" / branch <<? TreeOpts >> { in =>        
         parse[Tree](in).tree.filter(_.path.matches(Target.format(version))) match {
           case Nil       => Left(NotFound) :: Nil
           case l :: Nil  => lib(user, repo, l.sha) :: Nil
           case ls        => ls.map(l => lib(user, repo, l.sha))
         }
       })
-    }.getOrElse(Seq(Left(NotFound)))
+    }.getOrElse {
+      println("could not find any git data for %s/%s @ %s on branch".format(user, repo, version, branch))
+      Seq(Left(NotFound))
+    }
 
-  private val repos = :/("api.github.com").secure / "repos"
+  private val repos = :/("api.github.com").secure / "repos" <:< Map("Authorization" -> "bearer %s".format(Props.get("GH_ACCESS_TOKEN")))
 }
