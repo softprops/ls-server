@@ -40,7 +40,7 @@ object Github extends ManagedHttp with Logged {
 
   def contributors(user: String, repo: String): Either[Error, Seq[User]] =
     try {
-      http(repos.secure / user / repo / "contributors" >> { in =>
+      http(repos / user / repo / "contributors" >> { in =>
         try { Right(parse[Seq[User]](in)) }
         catch { case e =>
           e.printStackTrace
@@ -57,7 +57,7 @@ object Github extends ManagedHttp with Logged {
 
   def repository(user: String, repo: String): Either[Error, Map[String, Any]] = 
     try {
-      http(repos.secure / user / repo >> { in =>
+      http(repos / user / repo >> { in =>
         try { Right(parse[Map[String, Any]](in)) }
         catch { case e =>
           e.printStackTrace
@@ -75,7 +75,7 @@ object Github extends ManagedHttp with Logged {
   /** Extract a library from a gh blob, result may be unparsable or not found */
   def lib(user: String, repo: String, sha: String): Either[Error, Library] =
     try {
-      http(repos.secure / user / repo / "git" / "blobs" / sha <:< BlogOpts >> { in =>
+      http(repos / user / repo / "git" / "blobs" / sha <:< BlogOpts >> { in =>
         try {
            Right(parse[Library](in).copy(contributors = Some(contributors(user, repo).fold({
              errs => log.warn(errs.toString); Nil
@@ -97,7 +97,7 @@ object Github extends ManagedHttp with Logged {
   /** Extract all libraries from a repo on a given branch */
   private def any(user: String, repo: String, branch: String, version: String): Seq[Either[Error, Library]] =
     allCatch.opt {
-      http(repos.secure / user / repo / "git" / "trees" / branch <<? TreeOpts >> { in =>        
+      http(repos / user / repo / "git" / "trees" / branch <<? TreeOpts >> { in =>
         parse[Tree](in).tree.filter(_.path.matches(Target.format(version))) match {
           case Nil       => Left(NotFound) :: Nil
           case l :: Nil  => lib(user, repo, l.sha) :: Nil
@@ -109,5 +109,7 @@ object Github extends ManagedHttp with Logged {
       Seq(Left(NotFound))
     }
 
-  private val repos = :/("api.github.com").secure / "repos" <:< Map("Authorization" -> "bearer %s".format(Props.get("GH_ACCESS_TOKEN")))
+  private val repos = :/("api.github.com").secure / "repos" <:< Map(
+    "Authorization" -> "bearer %s".format(Props.get("GH_ACCESS_TOKEN")),
+    "User-Agent" -> "implicitly/1.0")
 }
